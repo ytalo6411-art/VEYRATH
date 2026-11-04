@@ -1,0 +1,20 @@
+# Dependencies and build output
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# Local configuration (never commit real Supabase credentials)
+.env
+.env.*
+!.env.example
+
+# Downloaded/original asset packages are catalogued but not vendored by default
+asset-library/downloads/**
+!asset-library/downloads/.gitkeep
+asset-library/extracted/**
+!asset-library/extracted/.gitkeep
+asset-library/originals/**
+!asset-library/originals/.gitkeep

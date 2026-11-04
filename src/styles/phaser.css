@@ -1,0 +1,13 @@
+/* Pixel-art render surfaces should use nearest-neighbor scaling and avoid CSS blur. */
+.phaser-host {
+  position: relative;
+  overflow: hidden;
+  image-rendering: pixelated;
+  touch-action: none;
+}
+
+.phaser-host canvas {
+  display: block;
+  max-width: 100%;
+  image-rendering: pixelated;
+}
