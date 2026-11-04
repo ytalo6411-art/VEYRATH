@@ -1,0 +1,188 @@
+{
+  "schemaVersion": 1,
+  "auditedAt": "2026-11-04",
+  "policy": "A package is not approved from price or a repository-level claim alone. Record the exact author, original source, individual license, attribution and redistribution terms before adding files to the production manifest.",
+  "sources": [
+    {
+      "id": "tiddybub-2d-assets",
+      "name": "Tiddybub — 2D Assets",
+      "url": "https://github.com/Tiddybub/2d-assets",
+      "access": "metadata-and-readme-reviewed",
+      "downloaded": false,
+      "repositoryLicense": "NOASSERTION",
+      "upstreamReadmeClaim": "The repository README describes 1,101 packs as CC0 and says each pack contains a SOURCE.md with author, license, and original page.",
+      "auditStatus": "pending-individual-pack-source-review",
+      "approvedForProduction": false,
+      "notes": "GitHub API reported a repository size of about 1,091,130 KB and default branch main. The full repository was not cloned or vendored. Review each candidate pack's SOURCE.md and original source before use; the README statement alone is not treated as per-file clearance."
+    },
+    {
+      "id": "gridwright-jam-pack",
+      "name": "Gridwright Jam Pack",
+      "url": "https://gridwrightstudio.itch.io/free-pixel-art-game-assets-jam-pack",
+      "access": "not-accessible-from-this-sandbox",
+      "downloaded": false,
+      "licenseStatus": "not-verified",
+      "auditStatus": "pending",
+      "approvedForProduction": false,
+      "notes": "The user-provided page is on itch.io, outside the hosts available to this workspace. The package and current license were not downloaded or verified."
+    },
+    {
+      "id": "ptdesigns-town-environments",
+      "name": "PtDesigns — Town Environments",
+      "url": "https://ptdesigns.itch.io/",
+      "access": "not-accessible-from-this-sandbox",
+      "downloaded": false,
+      "licenseStatus": "not-verified",
+      "auditStatus": "pending",
+      "approvedForProduction": false,
+      "notes": "Exact package page and current license need manual verification. Preserve the stated 256x128 isometric geometry if later obtained."
+    },
+    {
+      "id": "ptdesigns-fall-collection",
+      "name": "PtDesigns — Fall Collection",
+      "url": "https://ptdesigns.itch.io/",
+      "access": "not-accessible-from-this-sandbox",
+      "downloaded": false,
+      "licenseStatus": "not-verified",
+      "auditStatus": "pending",
+      "approvedForProduction": false,
+      "notes": "Exact package page and current license need manual verification. Preserve the stated 256x128 isometric geometry if later obtained."
+    },
+    {
+      "id": "kenney-assets",
+      "name": "Kenney asset library",
+      "url": "https://kenney.nl/assets",
+      "access": "not-accessible-from-this-sandbox",
+      "downloaded": false,
+      "licenseStatus": "not-verified-per-package",
+      "auditStatus": "pending",
+      "approvedForProduction": false,
+      "notes": "Do not assume all packages share a license; verify each package page and its included license."
+    },
+    {
+      "id": "kenney-isometric-dungeon",
+      "name": "Kenney — Isometric Dungeon",
+      "url": "https://kenney-assets.itch.io/isometric-dungeon-tiles",
+      "access": "not-accessible-from-this-sandbox",
+      "downloaded": false,
+      "licenseStatus": "not-verified",
+      "auditStatus": "pending",
+      "approvedForProduction": false,
+      "notes": "No package downloaded and no current license asserted."
+    },
+    {
+      "id": "kenney-isometric-library",
+      "name": "Kenney — Isometric Library",
+      "url": "https://kenney-assets.itch.io/isometric-library-tiles",
+      "access": "not-accessible-from-this-sandbox",
+      "downloaded": false,
+      "licenseStatus": "not-verified",
+      "auditStatus": "pending",
+      "approvedForProduction": false,
+      "notes": "No package downloaded and no current license asserted."
+    },
+    {
+      "id": "kenney-roguelike-rpg",
+      "name": "Kenney — Roguelike/RPG Pack",
+      "url": "https://kenney.nl/assets/roguelike-rpg-pack",
+      "access": "not-accessible-from-this-sandbox",
+      "downloaded": false,
+      "licenseStatus": "not-verified",
+      "auditStatus": "pending",
+      "approvedForProduction": false,
+      "notes": "No package downloaded and no current license asserted."
+    },
+    {
+      "id": "0x72-dungeontileset-ii",
+      "name": "0x72 — DungeonTileset II",
+      "url": "https://0x72.itch.io/dungeontileset-ii",
+      "access": "not-accessible-from-this-sandbox",
+      "downloaded": false,
+      "licenseStatus": "not-verified",
+      "auditStatus": "pending",
+      "approvedForProduction": false,
+      "notes": "The CC0 description in the supplied brief has not been independently checked against the current package/source."
+    },
+    {
+      "id": "universal-lpc-character-generator",
+      "name": "Universal LPC Character Generator",
+      "url": "https://liberatedpixelcup.github.io/Universal-LPC-Spritesheet-Character-Generator/",
+      "access": "not-accessible-from-this-sandbox",
+      "downloaded": false,
+      "licenseStatus": "not-verified",
+      "auditStatus": "pending-license-and-attribution-review",
+      "approvedForProduction": false,
+      "notes": "Review the artwork's CC-BY-SA/GPL obligations and attribution/source chain before distributing composites."
+    },
+    {
+      "id": "freegamesprites",
+      "name": "FreeGameSprites",
+      "url": "https://freegamesprites.com/",
+      "access": "not-accessible-from-this-sandbox",
+      "downloaded": false,
+      "licenseStatus": "not-verified-per-asset",
+      "auditStatus": "pending",
+      "approvedForProduction": false
+    },
+    {
+      "id": "hydeco",
+      "name": "HydeCo Free Art",
+      "url": "https://hydecogames.com/free-art/",
+      "access": "not-accessible-from-this-sandbox",
+      "downloaded": false,
+      "licenseStatus": "not-verified-per-asset",
+      "auditStatus": "pending",
+      "approvedForProduction": false
+    },
+    {
+      "id": "opengameart",
+      "name": "OpenGameArt",
+      "url": "https://opengameart.org/",
+      "access": "not-accessible-from-this-sandbox",
+      "downloaded": false,
+      "licenseStatus": "varies-by-publication-not-reviewed",
+      "auditStatus": "pending",
+      "approvedForProduction": false
+    },
+    {
+      "id": "itch-free-assets",
+      "name": "itch.io — Free Game Assets",
+      "url": "https://itch.io/game-assets/free",
+      "access": "not-accessible-from-this-sandbox",
+      "downloaded": false,
+      "licenseStatus": "varies-by-creator-not-reviewed",
+      "auditStatus": "pending",
+      "approvedForProduction": false
+    },
+    {
+      "id": "game-icons",
+      "name": "Game-icons.net",
+      "url": "https://game-icons.net/",
+      "access": "not-accessible-from-this-sandbox",
+      "downloaded": false,
+      "licenseStatus": "not-verified-current-terms",
+      "auditStatus": "pending-attribution-review",
+      "approvedForProduction": false
+    },
+    {
+      "id": "lospec",
+      "name": "Lospec",
+      "url": "https://lospec.com/",
+      "access": "not-accessible-from-this-sandbox",
+      "downloaded": false,
+      "licenseStatus": "varies-by-resource-not-reviewed",
+      "auditStatus": "pending",
+      "approvedForProduction": false
+    },
+    {
+      "id": "craftpix-freebies",
+      "name": "CraftPix Freebies",
+      "url": "https://craftpix.net/freebies/",
+      "access": "not-accessible-from-this-sandbox",
+      "downloaded": false,
+      "licenseStatus": "not-verified-per-package",
+      "auditStatus": "pending",
+      "approvedForProduction": false
+    }
+  ]
+}
