@@ -9,6 +9,7 @@ import { supabase } from '../services/supabase/client';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
+  const [localPreview, setLocalPreview] = useState(false);
   const [authReady, setAuthReady] = useState(!appEnvironment.isSupabaseConfigured);
 
   useEffect(() => {
@@ -50,6 +51,10 @@ export default function App() {
     return <DashboardPage mode="local" workspaceId={localWorkspace.id} />;
   }
 
+  if (localPreview) {
+    return <DashboardPage mode="local" workspaceId={localWorkspace.id} onExitLocalPreview={() => setLocalPreview(false)} />;
+  }
+
   if (!authReady) {
     return (
       <main className="startup-screen" aria-live="polite">
@@ -59,7 +64,7 @@ export default function App() {
     );
   }
 
-  if (!session?.user) return <AuthPage />;
+  if (!session?.user) return <AuthPage onLocalPreview={() => setLocalPreview(true)} />;
 
   return (
     <DashboardPage

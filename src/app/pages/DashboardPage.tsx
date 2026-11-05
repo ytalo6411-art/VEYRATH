@@ -14,6 +14,7 @@ import {
   KeyRound,
   Map,
   Plus,
+  Play,
   ScrollText,
   Shield,
   Sparkles,
@@ -24,21 +25,24 @@ import type { CampaignDraft, CampaignSummary, WorkspaceMode } from '../../types/
 import { campaignService } from '../../services/campaigns/campaignService';
 import { createLocalCampaign, listLocalCampaigns } from '../../services/campaigns/localCampaignStore';
 import { CreateCampaignDialog, JoinCampaignDialog } from '../components/CampaignDialogs';
+import { AdventurePage } from './AdventurePage';
 
 interface DashboardPageProps {
   mode: WorkspaceMode;
   workspaceId: string;
   userEmail?: string;
   onSignOut?: () => Promise<void>;
+  onExitLocalPreview?: () => void;
 }
 
 type PageKey = 'overview' | 'campaigns';
 type DialogKey = 'create' | 'join' | null;
 
-export function DashboardPage({ mode, workspaceId, userEmail, onSignOut }: DashboardPageProps) {
+export function DashboardPage({ mode, workspaceId, userEmail, onSignOut, onExitLocalPreview }: DashboardPageProps) {
   const [page, setPage] = useState<PageKey>('overview');
   const [campaigns, setCampaigns] = useState<CampaignSummary[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [adventureOpen, setAdventureOpen] = useState(false);
   const [dialog, setDialog] = useState<DialogKey>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -70,12 +74,17 @@ export function DashboardPage({ mode, workspaceId, userEmail, onSignOut }: Dashb
 
   const selectedCampaign = campaigns.find((campaign) => campaign.id === selectedId) ?? null;
 
+  if (selectedCampaign && adventureOpen) {
+    return <AdventurePage key={selectedCampaign.id} campaign={selectedCampaign} onBack={() => setAdventureOpen(false)} />;
+  }
+
   async function createCampaign(draft: CampaignDraft) {
     const campaign = mode === 'local'
       ? createLocalCampaign(draft)
       : await campaignService.createCampaign(workspaceId, draft);
     setCampaigns((current) => [campaign, ...current.filter((item) => item.id !== campaign.id)]);
     setSelectedId(campaign.id);
+    setAdventureOpen(false);
     setPage('campaigns');
     setDialog(null);
     setToast(mode === 'local'
@@ -92,6 +101,7 @@ export function DashboardPage({ mode, workspaceId, userEmail, onSignOut }: Dashb
     const joined = loaded.find((campaign) => campaign.id === campaignId);
     if (!joined) throw new Error('A entrada foi registrada, mas a campanha não apareceu na lista. Atualize e tente novamente.');
     setSelectedId(joined.id);
+    setAdventureOpen(false);
     setPage('campaigns');
     setDialog(null);
     setToast(`Você entrou na campanha “${joined.name}”.`);
@@ -118,10 +128,10 @@ export function DashboardPage({ mode, workspaceId, userEmail, onSignOut }: Dashb
 
         <div className="sidebar-section-label">SUA MESA</div>
         <nav className="primary-nav" aria-label="Navegação principal">
-          <button className={`nav-item ${page === 'overview' && !selectedCampaign ? 'is-active' : ''}`} type="button" onClick={() => { setPage('overview'); setSelectedId(null); }}>
+          <button className={`nav-item ${page === 'overview' && !selectedCampaign ? 'is-active' : ''}`} type="button" onClick={() => { setPage('overview'); setSelectedId(null); setAdventureOpen(false); }}>
             <Compass size={18} /><span>Visão geral</span><ChevronRight size={15} className="nav-chevron" />
           </button>
-          <button className={`nav-item ${page === 'campaigns' ? 'is-active' : ''}`} type="button" onClick={() => { setPage('campaigns'); setSelectedId(null); }}>
+          <button className={`nav-item ${page === 'campaigns' ? 'is-active' : ''}`} type="button" onClick={() => { setPage('campaigns'); setSelectedId(null); setAdventureOpen(false); }}>
             <ScrollText size={18} /><span>Campanhas</span><span className="nav-count">{campaigns.length}</span>
           </button>
         </nav>
@@ -132,7 +142,7 @@ export function DashboardPage({ mode, workspaceId, userEmail, onSignOut }: Dashb
         <div className="nav-item nav-item-muted" aria-disabled="true" title="Disponível nas próximas fases"><Shield size={18} /><span>Combate</span><span className="coming-tag">FASE 5</span></div>
 
         <div className="sidebar-spacer" />
-        <div className="sidebar-help"><CircleHelp size={17} /><span><strong>Primeira fase</strong><small>Campanhas e fundação online</small></span></div>
+        <div className="sidebar-help"><CircleHelp size={17} /><span><strong>Prévia jogável</strong><small>Solo · progresso no navegador</small></span></div>
         <div className="sidebar-profile">
           <div className="profile-avatar">{mode === 'cloud' ? <Crown size={17} /> : <FlaskConical size={17} />}</div>
           <div className="profile-copy"><strong>{mode === 'cloud' ? 'Aventureiro' : 'Oficina local'}</strong><span>{userEmail ?? 'somente neste navegador'}</span></div>
@@ -145,7 +155,10 @@ export function DashboardPage({ mode, workspaceId, userEmail, onSignOut }: Dashb
           <div className="topbar-crumb"><span>VEYRATH</span><span className="crumb-separator">/</span><span>{selectedCampaign ? 'CAMPANHA' : page === 'overview' ? 'VISÃO GERAL' : 'CAMPANHAS'}</span></div>
           <div className="topbar-actions">
             {mode === 'local' ? (
-              <span className="mode-pill mode-pill-local"><span className="mode-dot" /> LOCAL · SEM SINCRONIZAÇÃO</span>
+              <>
+                <span className="mode-pill mode-pill-local"><span className="mode-dot" /> LOCAL · SEM SINCRONIZAÇÃO</span>
+                {onExitLocalPreview && <button className="local-exit-button" type="button" onClick={onExitLocalPreview}><ArrowLeft size={14} /> Login online</button>}
+              </>
             ) : (
               <span className="mode-pill mode-pill-cloud"><span className="mode-dot" /> CONTA CONECTADA</span>
             )}
@@ -166,7 +179,7 @@ export function DashboardPage({ mode, workspaceId, userEmail, onSignOut }: Dashb
           )}
 
           {selectedCampaign ? (
-            <CampaignDetail campaign={selectedCampaign} onBack={() => { setSelectedId(null); setPage('campaigns'); }} />
+            <CampaignDetail campaign={selectedCampaign} onBack={() => { setSelectedId(null); setPage('campaigns'); setAdventureOpen(false); }} onPlayPreview={() => setAdventureOpen(true)} />
           ) : page === 'overview' ? (
             <OverviewPage
               campaigns={campaigns}
@@ -175,7 +188,7 @@ export function DashboardPage({ mode, workspaceId, userEmail, onSignOut }: Dashb
               mode={mode}
               onCreate={() => setDialog('create')}
               onJoin={() => setDialog('join')}
-              onOpen={(campaign) => { setSelectedId(campaign.id); setPage('campaigns'); }}
+              onOpen={(campaign) => { setSelectedId(campaign.id); setPage('campaigns'); setAdventureOpen(false); }}
               onRetry={() => void refreshCampaigns().catch(() => undefined)}
             />
           ) : (
@@ -186,7 +199,7 @@ export function DashboardPage({ mode, workspaceId, userEmail, onSignOut }: Dashb
               mode={mode}
               onCreate={() => setDialog('create')}
               onJoin={() => setDialog('join')}
-              onOpen={(campaign) => setSelectedId(campaign.id)}
+              onOpen={(campaign) => { setSelectedId(campaign.id); setAdventureOpen(false); }}
               onRetry={() => void refreshCampaigns().catch(() => undefined)}
             />
           )}
@@ -243,19 +256,19 @@ function OverviewPage({
         <div className="hero-content">
           <span className="hero-kicker"><span className="tiny-star">✦</span> AS CRÔNICAS COMEÇAM AQUI</span>
           <h2>Uma história.<br /><em>Várias possibilidades.</em></h2>
-          <p>Crie a mesa que vai dar vida ao seu mundo. O mapa, os personagens e os encontros chegam em etapas — sem atalhos de mentirinha.</p>
+          <p>Crie sua mesa e entre na prévia solo da Clareira da Vigília. Personagens completos, mundo sincronizado e multiplayer continuam em desenvolvimento.</p>
           <div className="hero-actions">
             <button className="button button-primary" type="button" onClick={onCreate}><Plus size={17} /> Criar campanha</button>
             {mode === 'cloud' && <button className="button button-outline" type="button" onClick={onJoin}><KeyRound size={16} /> Tenho um convite</button>}
           </div>
         </div>
-        <div className="hero-footnote"><span className="footnote-line" /> PRIMEIRA REGIÃO EM PREPARAÇÃO</div>
+        <div className="hero-footnote"><span className="footnote-line" /> PRÉVIA SOLO DISPONÍVEL NA CAMPANHA</div>
       </section>
 
       <section className="overview-metrics" aria-label="Estado atual do projeto">
         <div className="metric-card"><span className="metric-icon metric-icon-amber"><ScrollText size={17} /></span><span className="metric-value">{loading ? '—' : campaigns.length.toString().padStart(2, '0')}</span><span className="metric-label">{campaigns.length === 1 ? 'campanha na mesa' : 'campanhas na mesa'}</span></div>
         <div className="metric-card"><span className="metric-icon metric-icon-green"><Shield size={17} /></span><span className="metric-value">{mode === 'cloud' ? 'CLOUD' : 'LOCAL'}</span><span className="metric-label">armazenamento atual</span></div>
-        <div className="metric-card metric-card-next"><span className="metric-icon metric-icon-purple"><Sparkles size={17} /></span><span className="metric-value">PRÓXIMO</span><span className="metric-label">personagens e mundo</span></div>
+        <div className="metric-card metric-card-next"><span className="metric-icon metric-icon-purple"><Sparkles size={17} /></span><span className="metric-value">PRÓXIMO</span><span className="metric-label">mundo cloud e personagens</span></div>
       </section>
 
       <div className="content-grid">
@@ -272,11 +285,11 @@ function OverviewPage({
           <div className="next-panel-heading"><span className="eyebrow">PRÓXIMO CAPÍTULO</span><span className="phase-badge">FASE 1 / 8</span></div>
           <div className="next-art" aria-hidden="true"><div className="next-orbit orbit-one" /><div className="next-orbit orbit-two" /><div className="next-crystal">✦</div></div>
           <h3>Uma boa história precisa de uma mesa.</h3>
-          <p>Esta fundação já cuida da sua campanha. Personagens, mundo explorável e regras entram nas próximas etapas.</p>
+          <p>A campanha cloud já funciona e a prévia solo está disponível. Personagens completos, mundo sincronizado e jogo em grupo entram nas próximas etapas.</p>
           <div className="next-divider" />
           <div className="next-check-row"><span className="check-circle"><Check size={13} /></span><span>Campanhas e acessos</span><span className="done-label">AGORA</span></div>
           <div className="next-check-row next-check-muted"><span className="empty-circle" /><span>Personagens e ficha</span><span className="next-phase-label">FASE 3</span></div>
-          <div className="next-check-row next-check-muted"><span className="empty-circle" /><span>Mundo isométrico</span><span className="next-phase-label">FASE 4</span></div>
+          <div className="next-check-row next-check-muted"><span className="empty-circle" /><span>Mundo sincronizado</span><span className="next-phase-label">FASE 4</span></div>
         </aside>
       </div>
     </>
@@ -331,7 +344,7 @@ function CampaignGrid({ campaigns, mode, onOpen }: { campaigns: CampaignSummary[
   );
 }
 
-function CampaignDetail({ campaign, onBack }: { campaign: CampaignSummary; onBack: () => void }) {
+function CampaignDetail({ campaign, onBack, onPlayPreview }: { campaign: CampaignSummary; onBack: () => void; onPlayPreview: () => void }) {
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState('');
 
@@ -355,6 +368,12 @@ function CampaignDetail({ campaign, onBack }: { campaign: CampaignSummary; onBac
         <div className="detail-cover-copy"><span className="eyebrow">CAMPANHA · {campaign.role === 'master' ? 'VOCÊ É MESTRE' : 'PARTICIPANTE'}</span><h1>{campaign.name}</h1><p>Criada em {formatDate(campaign.createdAt)}</p></div>
       </div>
 
+      <section className="campaign-play-entry">
+        <span className="campaign-play-icon"><Play size={19} fill="currentColor" /></span>
+        <div><span className="eyebrow">PRÉVIA JOGÁVEL · SOLO</span><h2>Entre na Clareira da Vigília</h2><p>Explore uma região finita, converse com Lira e enfrente um lodo usando regras D20.</p><small>O progresso desta aventura é salvo apenas neste navegador — não é sincronizado com a campanha na nuvem.</small></div>
+        <button className="button button-primary" type="button" onClick={onPlayPreview}><Play size={16} fill="currentColor" /> Jogar prévia</button>
+      </section>
+
       <div className="detail-grid">
         <section className="panel detail-info-panel"><span className="eyebrow">SOBRE ESTA MESA</span><h2>O começo da história</h2><p className="detail-description">{campaign.description || 'Nenhuma descrição foi adicionada ainda. A história pode começar aqui.'}</p><div className="detail-facts"><div><span>ESTADO</span><strong><span className="status-dot" /> Campanha ativa</strong></div><div><span>ESPAÇO DE DADOS</span><strong>{campaign.mode === 'cloud' ? 'Supabase · sincronizado' : 'Este navegador · local'}</strong></div></div></section>
 
@@ -376,7 +395,7 @@ function CampaignDetail({ campaign, onBack }: { campaign: CampaignSummary; onBac
         </section>
       </div>
 
-      <div className="phase-note"><div className="phase-note-icon"><ArrowDownRight size={18} /></div><div><span className="eyebrow">ESTA É A FUNDAÇÃO</span><p>Esta campanha já pode ser criada e retomada. Personagens, mapas e cenas de jogo serão conectados nas próximas fases; ainda não há exploração ou combate ativo.</p></div><span className="phase-badge">FASE 1</span></div>
+      <div className="phase-note"><div className="phase-note-icon"><ArrowDownRight size={18} /></div><div><span className="eyebrow">CLOUD + PRÉVIA LOCAL</span><p>Campanha, convite e membros usam o Supabase quando conectado. A aventura solo já pode ser jogada, mas seu progresso fica somente neste navegador; ainda não há sincronização do mundo nem multiplayer.</p></div><span className="phase-badge">PRÉVIA</span></div>
     </section>
   );
 }

@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { ArrowRight, BookOpen, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { ArrowRight, BookOpen, Eye, EyeOff, FlaskConical, ShieldCheck } from 'lucide-react';
 import { authService } from '../../services/auth/authService';
 
 type AuthMode = 'sign-in' | 'sign-up';
 
-export function AuthPage() {
+interface AuthPageProps {
+  onLocalPreview?: () => void;
+}
+
+export function AuthPage({ onLocalPreview }: AuthPageProps) {
   const [mode, setMode] = useState<AuthMode>('sign-in');
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -111,6 +115,13 @@ export function AuthPage() {
 
           <div className="auth-security"><ShieldCheck size={16} aria-hidden="true" /><span>Autenticação e sessão gerenciadas pelo Supabase.</span></div>
           <p className="auth-legal">Ao continuar, você cria um acesso ao Veyrath. Os dados de campanha só ficam disponíveis aos participantes autorizados.</p>
+          {onLocalPreview && (
+            <div className="auth-local-preview">
+              <div className="auth-preview-divider"><span>OU</span></div>
+              <button className="button button-outline" type="button" onClick={onLocalPreview}><FlaskConical size={16} /> Jogar prévia local sem conta</button>
+              <p>Modo solo separado do Supabase. Campanha e progresso ficam apenas neste navegador; não há sincronização ou multiplayer.</p>
+            </div>
+          )}
         </div>
       </section>
     </main>

@@ -26,7 +26,10 @@ export const authService = {
     const { data, error } = await client.auth.signUp({
       email,
       password,
-      options: { data: { display_name: displayName } },
+      options: {
+        data: { display_name: displayName },
+        ...(typeof window === 'undefined' ? {} : { emailRedirectTo: window.location.origin }),
+      },
     });
     throwAuthError(error);
     return data;
