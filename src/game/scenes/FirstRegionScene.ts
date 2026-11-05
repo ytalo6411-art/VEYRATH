@@ -1,9 +1,21 @@
 import Phaser from 'phaser';
 import { FIRST_REGION } from '../world/firstRegionData';
-import type { LocalAdventureState } from '../../services/game/localAdventureStore';
-
 type StepDirection = 'up' | 'right' | 'down' | 'left';
 type InteractableId = 'lira' | 'marsh-slime' | 'camp';
+
+interface RegionInitialState {
+  col: number;
+  row: number;
+  slimeHp: number;
+}
+
+interface OtherPlayerMarker {
+  id: string;
+  name: string;
+  characterClass: 'guardian' | 'ranger' | 'arcanist';
+  col: number;
+  row: number;
+}
 
 const STEP: Record<StepDirection, { col: number; row: number }> = {
   up: { col: 0, row: -1 },
@@ -20,9 +32,11 @@ const TERRAIN_COLOR: Record<string, number> = {
 };
 
 export class FirstRegionScene extends Phaser.Scene {
-  private readonly initialState: LocalAdventureState;
+  private readonly initialState: RegionInitialState;
+  private readonly authoritative: boolean;
   private terrain?: Phaser.GameObjects.Graphics;
   private readonly objects = new Map<string, Phaser.GameObjects.Container>();
+  private readonly otherPlayers = new Map<string, { marker: Phaser.GameObjects.Container; col: number; row: number }>();
   private player?: Phaser.GameObjects.Container;
   private prompt?: Phaser.GameObjects.Text;
   private position: { col: number; row: number };
@@ -35,9 +49,10 @@ export class FirstRegionScene extends Phaser.Scene {
   private slimeDefeated = false;
   private nearby: InteractableId | null = null;
 
-  constructor(initialState: LocalAdventureState) {
+  constructor(initialState: RegionInitialState, authoritative = false) {
     super({ key: 'FirstRegionScene' });
     this.initialState = initialState;
+    this.authoritative = authoritative;
     this.position = { col: initialState.col, row: initialState.row };
   }
 
@@ -86,6 +101,9 @@ export class FirstRegionScene extends Phaser.Scene {
     this.game.events.on('world:teleport', this.handleTeleport, this);
     this.game.events.on('world:slime-defeated', this.handleSlimeDefeated, this);
     this.game.events.on('world:lock-controls', this.handleControlLock, this);
+    this.game.events.on('world:authoritative-state', this.handleAuthoritativeState, this);
+    this.game.events.on('world:move-rejected', this.handleMoveRejected, this);
+    this.game.events.on('world:players', this.handleOnlinePlayers, this);
     this.scale.on(Phaser.Scale.Events.RESIZE, this.layout, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
 
@@ -115,6 +133,56 @@ export class FirstRegionScene extends Phaser.Scene {
     this.controlsLocked = Boolean(locked);
   };
 
+  private readonly handleAuthoritativeState = (state: RegionInitialState) => {
+    if (!Number.isInteger(state.col) || !Number.isInteger(state.row) || !Number.isInteger(state.slimeHp)) return;
+    this.position = { col: state.col, row: state.row };
+    this.slimeDefeated = state.slimeHp === 0;
+    this.objects.get('marsh-slime')?.setVisible(!this.slimeDefeated);
+    this.isMoving = false;
+    if (this.player) {
+      const point = this.toScreen(state.col, state.row);
+      this.player.setPosition(point.x, point.y);
+      this.player.setDepth(point.y + 20);
+    }
+    this.emitPosition();
+    this.refreshNearby();
+  };
+
+  private readonly handleMoveRejected = () => {
+    this.isMoving = false;
+  };
+
+  private readonly handleOnlinePlayers = (players: OtherPlayerMarker[]) => {
+    if (!Array.isArray(players)) return;
+    const incoming = players.filter((player) => player
+      && typeof player.id === 'string'
+      && typeof player.name === 'string'
+      && Number.isInteger(player.col)
+      && Number.isInteger(player.row)
+      && ['guardian', 'ranger', 'arcanist'].includes(player.characterClass));
+    const incomingIds = new Set(incoming.map((player) => player.id));
+
+    for (const [id, other] of this.otherPlayers) {
+      if (!incomingIds.has(id)) {
+        other.marker.destroy();
+        this.otherPlayers.delete(id);
+      }
+    }
+
+    for (const player of incoming) {
+      let other = this.otherPlayers.get(player.id);
+      if (!other) {
+        other = { marker: this.createOtherHero(player.name, player.characterClass), col: player.col, row: player.row };
+        this.otherPlayers.set(player.id, other);
+      }
+      other.col = player.col;
+      other.row = player.row;
+      const point = this.toScreen(player.col, player.row);
+      other.marker.setPosition(point.x, point.y);
+      other.marker.setDepth(point.y + 18);
+    }
+  };
+
   private readonly emitWorldState = () => {
     this.emitPosition();
     this.refreshNearby();
@@ -127,6 +195,9 @@ export class FirstRegionScene extends Phaser.Scene {
     this.game.events.off('world:teleport', this.handleTeleport, this);
     this.game.events.off('world:slime-defeated', this.handleSlimeDefeated, this);
     this.game.events.off('world:lock-controls', this.handleControlLock, this);
+    this.game.events.off('world:authoritative-state', this.handleAuthoritativeState, this);
+    this.game.events.off('world:move-rejected', this.handleMoveRejected, this);
+    this.game.events.off('world:players', this.handleOnlinePlayers, this);
     this.scale.off(Phaser.Scale.Events.RESIZE, this.layout, this);
   };
 
@@ -154,6 +225,11 @@ export class FirstRegionScene extends Phaser.Scene {
       const point = this.toScreen(this.position.col, this.position.row);
       this.player.setPosition(point.x, point.y);
       this.player.setDepth(point.y + 20);
+    }
+    for (const other of this.otherPlayers.values()) {
+      const point = this.toScreen(other.col, other.row);
+      other.marker.setPosition(point.x, point.y);
+      other.marker.setDepth(point.y + 18);
     }
     this.refreshPrompt();
   }
@@ -262,15 +338,26 @@ export class FirstRegionScene extends Phaser.Scene {
     return this.add.container(0, 0, [graphic, name]);
   }
 
-  private createHero(): Phaser.GameObjects.Container {
+  private createHero(bodyColor = 0x345c6a, displayName?: string): Phaser.GameObjects.Container {
     const graphic = this.add.graphics();
     graphic.fillStyle(0x101914, 0.58).fillEllipse(0, -1, 23, 7);
-    graphic.fillStyle(0x345c6a, 1).fillRect(-6, -25, 12, 17);
+    graphic.fillStyle(bodyColor, 1).fillRect(-6, -25, 12, 17);
     graphic.fillStyle(0xc89a70, 1).fillRect(-4, -34, 8, 10);
     graphic.fillStyle(0x342d29, 1).fillRect(-5, -37, 10, 4);
     graphic.fillStyle(0x9f7652, 1).fillRect(-7, -10, 5, 6).fillRect(2, -10, 5, 6);
     graphic.fillStyle(0xd4bc8e, 1).fillRect(-1, -22, 3, 7);
-    return this.add.container(0, 0, [graphic]);
+    const hero = this.add.container(0, 0, [graphic]);
+    if (displayName) {
+      hero.add(this.add.text(0, -47, displayName.slice(0, 12).toUpperCase(), {
+        fontFamily: 'monospace', fontSize: '7px', color: '#f0d6a3', backgroundColor: '#162019', padding: { left: 3, right: 3, top: 2, bottom: 2 },
+      }).setOrigin(0.5));
+    }
+    return hero;
+  }
+
+  private createOtherHero(name: string, characterClass: OtherPlayerMarker['characterClass']): Phaser.GameObjects.Container {
+    const color = characterClass === 'guardian' ? 0x805e9a : characterClass === 'ranger' ? 0x6b8e57 : 0x557ba3;
+    return this.createHero(color, name);
   }
 
   private toScreen(col: number, row: number): { x: number; y: number } {
@@ -297,6 +384,11 @@ export class FirstRegionScene extends Phaser.Scene {
     const row = this.position.row + offset.row;
     if (!this.isWalkable(col, row)) {
       this.game.events.emit('world:blocked');
+      return;
+    }
+    if (this.authoritative) {
+      this.isMoving = true;
+      this.game.events.emit('world:move-request', direction);
       return;
     }
 

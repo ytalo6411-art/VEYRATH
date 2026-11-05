@@ -1,93 +1,86 @@
 # VEYRATH — project status
 
-**Status updated:** 2026-11-04
-**Working branch:** `arena/780bfdfd-veyrath`
-**Branch base:** `1485ba5e1ac902b31277d114dbe1a5587e0324fa` (`main`)
+**Status updated:** 2026-11-05
+**Working branch:** `arena/1adbbae1-veyrath` (**active**)
+**Branch base:** `1678006674ded1d75f0f32e290014be4a94293ad` (`main`)
 
-## 1. Initial audit
+## 1. Summary
 
-When Phase 1 began, the repository contained only `README.md` and Git metadata. The React/Vite application, tests, migrations, Supabase integration, project documentation, and asset audit were added in PR #1. No third-party art was downloaded.
+The project now has a playable **online RPG vertical slice** for cloud campaigns, alongside the preserved browser-local solo preview. Cloud campaign game state is stored in Supabase. Authenticated database RPCs validate movement, campaign membership, quest actions, combat rolls/rewards, rests, and the GM region reset. Campaign members see shared characters and Realtime updates.
 
-Environment observed: Node.js `v22.22.3`, npm `10.9.8`. Current packages include React `19.3.1`, Phaser `3.90.0`, Supabase JS `2.119.0`, Vitest `5.1.0`, and TypeScript `5.9.3`.
+This is the first 13 × 11 region and one quest/encounter—not a finished multi-region RPG. Real two-account gameplay and browser visual QA are still pending.
 
-## 2. Phase 1 cloud setup
+## 2. Supabase and deployment
 
-A dedicated Supabase project was provisioned after the user freed a free-tier project slot:
+- Supabase project: `veyrath` (`ovzkleequlbacefjzduk`), Free, `sa-east-1`, currently `ACTIVE_HEALTHY`.
+- Migrations `20261104234703_veyrath_initial_schema`, `20261105161506_online_campaign_game`, `20261105161945_online_game_fixes`, and `20261105162341_online_game_table_grants` are applied and recorded remotely; local filenames match the live versions.
+- Live metadata query confirmed `campaign_game_state`, `characters`, `character_inventory`, and `campaign_game_events` all exist with RLS enabled and are in `supabase_realtime`. `anon` has no direct table read or game-RPC write access; `authenticated` has campaign-scoped reads and no direct table writes. The online migrations created no character, game-state, or event rows.
+- Email/password signup is enabled, email confirmation is required, and Supabase Auth redirects are configured for the known Vite/sandbox/production origins. No real sign-up or email-confirmation test has been done.
+- No `.env.local` exists in this checkout. Vercel's project environments already have the Supabase URL and publishable key; no service-role key is used by frontend code.
+- Known production deployment: `https://veyrath-woad.vercel.app`, deployment `dpl_9Za74Eci2T8s9ksTPWBagSRN753y`, `READY`, still on the pre-online-game commit. Vercel's protection remains SSO (`private: true`, `all_except_custom_domains`), so this does not mean unrestricted public access. The active working branch has not been deployed.
 
-- Project: `veyrath` (`ovzkleequlbacefjzduk`), Free plan, `sa-east-1`.
-- Auth, database, REST, Realtime, Storage, and pooler reported healthy during setup.
-- Migration `veyrath_initial_schema` was applied; Supabase migration version: `20261104234703`.
-- `profiles`, `campaigns`, and `campaign_members` exist with RLS enabled. Policies and the migration record were verified through the Supabase connector.
-- Email/password signup is enabled and email confirmation remains required. Redirect URLs include local Vite and this sandbox preview.
-- This workspace has `.env.local` with the project URL and a **publishable** key. It is git-ignored. No service-role key is in the frontend or repository.
+## 3. Online campaign RPG
 
-No real account has been created or used for an interactive sign-up, email confirmation, campaign creation, or two-account authorization test. Playwright's Chromium binary is absent, so the authored browser smoke test could not be run here.
+The online entry is available separately from the local preview on each cloud campaign.
 
-## 3. First playable vertical slice — local solo preview
+- **Characters:** one per account and campaign; Guardian, Ranger, or Arcanist; server-assigned stats, spawn position, level, XP, HP/defense, quest state, and inventory.
+- **Shared region:** persistent world HP/revision, collision-aware player movement, distinct available spawn tiles, and other party members drawn in the isometric Phaser scene.
+- **Quest:** campaign quest to accept Lira's request, defeat the marsh slime, recover its amber shard, return to Lira, and receive XP/progression.
+- **Combat:** D20 attack/defense, damage, critical hits, slime response, death/resting, victory, and shared loot are resolved and recorded by PostgreSQL. The browser does not submit rolls or rewards.
+- **GM tool:** campaign master can reset the first region for everyone. It restores the encounter and positions, clears this region's item/quest state, and preserves earned XP.
+- **Shared log and status:** recent actions, party status, inventory, health, positions, and quest progress refresh through Supabase Realtime and authoritative snapshots.
 
-The previous Phaser scaffold has been connected to a small playable adventure:
+All game-table RLS policies are enabled. Authenticated clients can read permitted campaign rows but have no direct write grants to game-state tables. Game writes use membership-checked `SECURITY DEFINER` RPCs. Inventory visibility is limited to a member's own character.
 
-- A finite **13 × 11** isometric region, *Clareira da Vigília*, with grass, a stone path, marsh water, rocks, trees, an encampment, Lira, the player, and one slime. Prototype visuals are drawn with Phaser Graphics; no unverified external sprites or licenses were introduced.
-- Movement with WASD/arrow keys and on-screen directional controls. Region bounds, water, rocks, and trees block movement; interaction with nearby targets is available by E or button.
-- Lira can give a quest to defeat the slime and return an amber shard. The encounter includes initiative, D20 attack rolls, defense/AC, critical hits, damage, enemy turns, victory/defeat, XP, item reward, and camp rest.
-- Region position, HP, quest state, slime HP, inventory, XP, and update timestamp are saved under a browser `localStorage` key scoped to campaign ID. Corrupt/unreadable saves are not overwritten automatically.
-- The progression above is **browser-local only**, including when opened from a cloud campaign. It is not Supabase game state, cross-device sync, multiplayer, or server-authoritative combat. The cloud campaign/account/invitation path remains unchanged.
-- If Supabase is configured and the visitor is unauthenticated, the auth page offers **“Jogar prévia local sem conta”**. It enters a separately labelled Local Workshop. Users can return to the cloud login. If Supabase is absent, Local Workshop opens directly.
+## 4. Preserved local preview
 
-## 4. Feature status
+The earlier single-player experience remains in its own path:
 
-| Area | Status | Notes |
-|---|---|---|
-| React + TypeScript + Vite | Complete | Strict typecheck, responsive dashboard, production build. |
-| Supabase Auth | Configured, not user-tested | Email/password enabled; confirmation required; interactive signup is pending. |
-| PostgreSQL foundation | Deployed | Profiles, campaigns, members, RLS, creator trigger, invite RPC applied and verified. |
-| Campaign dashboard | Implemented | Cloud creation/list/invite use Supabase; local campaigns remain browser-only. |
-| Solo exploration preview | Playable local slice | Finite isometric region, movement, basic collisions, interactions, local campaign-scoped save. |
-| D20 combat and quest | Playable local prototype | Client-side only; not trusted for competitive or shared cloud state. |
-| Asset research/catalog | Started | No third-party assets downloaded or approved; see `ASSET_REPORT.md`. |
-| Unit/component tests | Passing | 22 Vitest checks across 9 files; includes region reachability, storage, D20 encounter, full local quest/reward UI flow and offline-entry checks. |
-| Browser E2E | Authored, pending execution | `tests/e2e/campaign-flow.spec.ts` covers local preview, canvas, movement save; needs Playwright Chromium. |
-| Two-account cloud test | Pending | Requires two real confirmed accounts and interactive verification. |
+- Finite 13 × 11 isometric *Clareira da Vigília*, terrain/prop collisions, WASD/arrow/on-screen movement, Lira, the quest, D20 encounter, inventory, XP, and camp rest.
+- Progress uses browser `localStorage` under a campaign-scoped key. It is not cloud-saved, cross-device, multiplayer, or server-authoritative.
+- Cloud campaign detail offers **Entrar na mesa online** and **Abrir prévia local** as separate actions. Local progress does not overwrite or migrate into Supabase.
+- When unauthenticated, the separately labelled Local Workshop preview is still available; it does not create an account or a cloud campaign.
 
-## 5. Implementation map
+Prototype visuals use Phaser Graphics only. No third-party art was copied or licensed; see `ASSET_REPORT.md`, `asset-catalog.json`, and `asset-licenses.json`.
+
+## 5. Verification
+
+- `npm ci`: 112 packages installed; 0 reported vulnerabilities.
+- `npm run typecheck`: passed.
+- `npm test -- --reporter=dot`: **27 tests passed across 11 files**, including local adventure/save tests, service snapshot/RPC validation, online character/quest UI flow, and downed-character recovery UI.
+- `npm run build`: passed. Vite's default large-chunk warning is for Phaser (~1.19 MB minified / 318 KB gzip); the initial UI chunk is ~485 KB minified.
+- The SQL migrations were applied in an isolated PostgreSQL WASM database for local validation. The test simulated two campaign members with distinct spawns and shared snapshots, rejected a collision, accepted the quest, resolved a D20 victory, delivered and consumed the shard, awarded 40 XP, tested camp rest and downed-character recovery, and reset the region. This was not an interactive test against real Supabase accounts.
+- Playwright E2E/visual inspection: **not run successfully** because the Chromium binary is not installed in this workspace.
+- Real email confirmation, joining with a second account, and two-browser Realtime gameplay: **pending**.
+
+## 6. Implementation map
 
 ```text
-src/app/                 Auth gate, explicit offline-preview option, dashboard, game UI
-src/engine/rules/        Pure D20 roll/attack resolution
-src/engine/combat/       First encounter initiative and turn state
-src/game/world/          Finite Clareira da Vigília region data
-src/game/scenes/         Phaser isometric terrain, props, movement, collisions, interactions
-src/services/game/       Campaign-scoped local adventure save
-src/services/campaigns/  Supabase cloud campaigns and browser-local campaigns
-src/services/auth/       Supabase email/password operations
-supabase/migrations/     Profiles, campaigns, memberships, RLS, invite RPC
-asset-library/           Staging structure; no downloaded source package
-asset-*.json             Asset catalog/manifest and license audit
-tests/                   Vitest unit/UI checks and Playwright smoke test
+src/app/                         Auth, dashboard, cloud/local adventure entries
+src/app/pages/OnlineAdventurePage.tsx  Cloud character, adventure, combat, and GM UI
+src/game/scenes/FirstRegionScene.ts    Shared-region Phaser rendering and local preview scene
+src/services/game/onlineAdventureService.ts  RPC calls, snapshot validation, Realtime
+src/services/game/                    Browser-local adventure save
+src/services/campaigns/               Supabase campaigns and local campaigns
+supabase/migrations/                  Campaign foundation and online RPG schema/RPCs/RLS
+src/types/database.ts                Generated-style Supabase tables/function types
+tests/                                Vitest unit/UI and Playwright smoke test
+asset-library/                        Asset staging; downloads intentionally git-ignored
 ```
 
-## 6. Boundaries and known gaps
+## 7. Remaining work and constraints
 
-- Supabase cloud mode activates only when both `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are supplied. Partial configuration stops with an error rather than silently writing locally.
-- The explicit unauthenticated preview creates/uses local campaigns only. It does not create an account or copy local adventure state into Supabase.
-- Local adventure persistence depends on this browser's storage. Clearing browser data or switching browsers/devices will not carry the save over.
-- The deployed schema still has no character, map, quest, inventory, or combat persistence. Game actions are not validated by a server; multiplayer/realtime game events and GM secrets are not implemented.
-- No real user has signed up, and RLS has not been tested across two authenticated accounts.
-- Playwright Chromium is absent. The E2E test was attempted but stopped before launch because its Chromium executable is missing; no hands-on browser visual or full gameplay test is claimed.
-- Production build succeeds and code-splits Phaser into a lazy chunk (~1.19 MB minified / 318 KB gzip). Vite still reports its default >500 KB chunk-size warning (main chunk ~507 KB); this is a warning, not a build failure.
-- No third-party assets were downloaded. Source/licensing probes that failed and unverified sources are documented in `ASSET_REPORT.md`.
+1. Use two real confirmed accounts: create a cloud campaign, join by invite, and verify both players can see only the authorized shared state.
+2. Play from two browsers/devices and verify Realtime movement, collision rejection, quest/loot flow, combat, recovery, and GM reset.
+3. Install Playwright Chromium and run `npm run test:e2e`; visually inspect desktop and mobile layouts/canvas.
+4. Review/optimize the large Phaser chunk before broader distribution.
+5. Expand the content and GM tools beyond the initial region before describing Veyrath as a complete multi-region RPG.
+6. Deploy the active branch only after the live two-account/browser QA, and explicitly review Vercel's SSO/public-access choice. The current production deployment still serves the older application and is SSO protected.
 
-## 7. Next steps
-
-1. Run `npm run test:e2e` once Chromium is available; visually test desktop/mobile canvas layout, region movement/collision, Lira's quest, slime victory/defeat, reward and save restoration.
-2. Complete real Supabase signup/email-confirmation, campaign creation and two-account invite/member RLS tests. Keep cloud errors distinct from local preview.
-3. Decide on compatible art packs and audit each exact asset/license before replacing prototype Graphics.
-4. Design server-validated game actions and schema for character/quest/inventory/map state before representing any gameplay as cloud-saved or multiplayer.
-5. Expand carefully into shared-world snapshots/reconnection, GM-only secrets, and deployment only after the single-player slice and security boundaries are verified.
-
-## 8. Verification commands
+## 8. Quality commands
 
 ```bash
+npm ci
 npm run typecheck
 npm test
 npm run build
