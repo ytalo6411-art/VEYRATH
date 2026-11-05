@@ -22,6 +22,7 @@ describe('Local Workshop campaign flow', () => {
     fireEvent.click(createButtons[createButtons.length - 1]!);
 
     await screen.findByRole('heading', { name: 'Aurora de Valedouro' });
+    expect(screen.getByRole('button', { name: 'Jogar prévia' })).toBeTruthy();
     expect(window.localStorage.getItem('veyrath.local.campaigns.v1')).toContain('Uma estrada esquecida sob a neve.');
 
     firstRender.unmount();

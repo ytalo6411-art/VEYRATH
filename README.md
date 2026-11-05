@@ -1,15 +1,19 @@
 # VEYRATH
 
-Veyrath is an original browser-based fantasy tabletop RPG in active development. The first delivery focuses on a real campaign workspace and a secure Supabase foundation; exploration, characters, and turn-based combat are planned as subsequent, testable phases.
+Veyrath is an original browser-based fantasy RPG in active development. The campaign workspace is backed by Supabase when configured, and a first **solo, browser-local gameplay preview** is now playable.
 
 ## Current state
 
-- **Local Workshop mode:** available without credentials. Campaigns are stored in this browser's `localStorage` only; they are not accounts, cloud saves, invitations, or multiplayer.
-- **Cloud mode:** Supabase Auth and campaign operations are enabled after configuring a Supabase project and applying the versioned migration. Campaign creation is performed under RLS; invite-code joins use a database RPC.
-- **Game engine:** React + TypeScript + Vite UI, Phaser 3 runtime scaffold, and a separate game/engine boundary.
-- **Assets:** no third-party art has been copied into the game. See `ASSET_REPORT.md`, `asset-catalog.json`, and `asset-licenses.json` for the current audit.
+- **Cloud mode:** a dedicated Supabase Free project (`veyrath`, `ovzkleequlbacefjzduk`, `sa-east-1`) is configured for this workspace. The initial schema/RLS migration is applied. Email/password signup is enabled and requires email confirmation.
+- **Campaigns:** cloud campaign creation/listing and invitation join use Supabase. No real-account signup or two-account invite test has yet been completed.
+- **Playable preview:** the finite 13 × 11 isometric *Clareira da Vigília* includes WASD/arrow movement, terrain/prop collisions, Lira's quest, a D20 slime encounter, reward/inventory, resting, and a per-campaign save.
+- **Local-only progress:** gameplay state is saved in this browser's `localStorage`, whether the campaign record itself is local or cloud. It is not synchronized, multiplayer, or validated by a game server. Cloud campaign/account data remains on the Supabase path; the preview does not silently replace it.
+- **Offline access:** when Supabase is configured but the visitor is not signed in, the auth page offers **“Jogar prévia local sem conta”**. It enters a separately labelled Local Workshop, not a cloud account. When Supabase is absent, Local Workshop opens directly.
+- **Assets:** no third-party art has been copied into the game. The first-region visuals are drawn with Phaser primitives for this prototype. See `ASSET_REPORT.md`, `asset-catalog.json`, and `asset-licenses.json` before importing external packs.
 
-## Run locally
+The active workspace has a `.env.local` containing the Supabase URL and a publishable browser key. It is git-ignored and is not included in this repository. A fresh clone must configure its own `.env.local`; never put a service-role key in frontend code.
+
+## Run and play locally
 
 Requirements: Node.js 22.22.2+ (tested here with 22.22.3) and npm.
 
@@ -18,17 +22,21 @@ npm install
 npm run dev
 ```
 
-Open the Vite URL printed in the terminal. With no `.env.local`, the app opens in clearly labelled Local Workshop mode. This mode is useful for exercising campaign creation on one browser; it does not simulate network play.
+Open the Vite URL printed in the terminal. With no Supabase configuration, create a campaign in Local Workshop. With cloud configuration, sign in normally or choose **“Jogar prévia local sem conta”** to try the local prototype without creating an account. Then create/open a campaign and select **“Jogar prévia”**. Use WASD/arrow keys or the on-screen controls; press E (or the interaction button) near Lira, the slime, or camp.
 
-## Enable Supabase cloud mode
+The adventure save key is scoped to the campaign in this browser. Clearing browser storage or changing browser/device loses access to that local progress. It does not alter or stand in for Supabase game persistence.
 
-1. Create a Supabase project on a plan appropriate for your use.
-2. Apply `supabase/migrations/202611040001_initial_schema.sql` in the Supabase SQL Editor (or with your established Supabase CLI workflow).
-3. Enable the email/password provider in Supabase Auth. Configure email confirmation to match your project policy.
-4. Copy `.env.example` to `.env.local` and set the project URL and the **publishable/anon** key. Never use the service-role key in the frontend.
-5. Restart Vite. The app will show the real sign-in/sign-up flow instead of Local Workshop mode.
+## Supabase setup for a new checkout
 
-See [`docs/supabase-setup.md`](docs/supabase-setup.md) for schema, RLS, and validation details. Cloud mode has not been connected to a live project in this checkout; no credentials were supplied, so live authentication and database round-trips remain to be verified against a configured Supabase project.
+This workspace's dedicated project already has `supabase/migrations/20261104234703_veyrath_initial_schema.sql` applied. In a new checkout:
+
+1. Use the dedicated Veyrath Supabase project, or create a separate project on a plan appropriate for your use.
+2. If the migration is not yet applied, apply `supabase/migrations/20261104234703_veyrath_initial_schema.sql` once.
+3. Copy `.env.example` to `.env.local` and set `VITE_SUPABASE_URL` and the **publishable/anon** key from Supabase. Never use the service-role key in the frontend.
+4. The project has email/password auth enabled, email confirmation required, and local/sandbox redirect URLs configured. Add the deployment domain to Supabase Auth's redirect allow-list when deploying.
+5. Restart Vite. Both Supabase variables enable the real sign-in/sign-up flow; partial configuration intentionally stops rather than silently writing locally.
+
+See [`docs/supabase-setup.md`](docs/supabase-setup.md) for RLS and verification status. The schema and RLS are deployed and checked, but signup and the two-account campaign/invite flow have not yet been exercised with real users.
 
 ## Quality checks
 
@@ -39,15 +47,15 @@ npm run build
 npm run test:e2e
 ```
 
-The Playwright smoke test requires a Chromium browser installed with `npx playwright install chromium`. Unit tests and the production build do not require a cloud project.
+The Playwright smoke test exercises the local preview entry, region canvas, and local movement save. It requires Chromium installed with `npx playwright install chromium`; Chromium is not currently installed in this workspace. Unit tests and the production build do not require a cloud project. The build succeeds; Vite reports a default chunk-size warning for the UI and lazily loaded Phaser bundle.
 
 ## Project map
 
-- `src/app/` — React screens and UI components.
-- `src/services/` — Supabase and explicitly local-only campaign data access.
-- `src/game/` — Phaser runtime boundary; no map is claimed playable yet.
-- `src/engine/` — rules-engine boundary (its D20/combat rules are not implemented yet); campaign input validation currently lives in `src/services/campaigns/`.
+- `src/app/` — React auth, dashboard, campaign details, and local playable adventure UI.
+- `src/services/` — Supabase campaign/auth paths and explicitly browser-local campaign/adventure storage.
+- `src/game/` — Phaser runtime, finite-region data, and isometric scene.
+- `src/engine/` — pure D20 and first-encounter rules; prototype combat is client-side only.
 - `supabase/migrations/` — versioned PostgreSQL schema, RLS, and campaign RPC.
 - `asset-library/` — staging/catalog metadata; downloaded originals are intentionally git-ignored.
 
-Read `PROJECT_STATUS.md` for audited scope and phase-by-phase status.
+The local slice is intentionally small; multiplayer, server-authoritative game actions, cloud persistence of map/quest/combat state, full character creation, and external art remain future work. Read `PROJECT_STATUS.md` for audited scope and phase-by-phase status.
